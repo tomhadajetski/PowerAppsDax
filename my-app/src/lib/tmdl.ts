@@ -10,15 +10,15 @@ function indent(text: string, spaces: number): string {
 
 function emitMeasure(m: DaxMeasure): string {
   const lines: string[] = []
+  if (m.description) {
+    lines.push(`        /// ${m.description}`)
+  }
   const daxIndented = indent(m.daxExpression.trimEnd(), 16)
   lines.push(`        measure '${m.displayName}' =`)
   lines.push(daxIndented)
   lines.push("")
   if (m.formatString) {
     lines.push(`            formatString: ${m.formatString}`)
-  }
-  if (m.description) {
-    lines.push(`            description: """${m.description}"""`)
   }
   if (m.displayFolder) {
     lines.push(`            displayFolder: ${m.displayFolder}`)
