@@ -131,7 +131,7 @@ export default function PackageDetailPage() {
                 <div key={u.id} className="flex items-center justify-between py-1.5 px-3 rounded-md bg-muted/50">
                   <div className="flex flex-col">
                     <Link to={`/functions/${u.id}`} className="text-sm font-medium hover:underline">{u.displayName}</Link>
-                    <span className="text-xs text-muted-foreground font-mono">{u.tableName}</span>
+                    <span className="text-xs text-muted-foreground font-mono">({u.parameters || "…"})</span>
                   </div>
                 </div>
               ))}

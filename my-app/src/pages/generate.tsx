@@ -1,6 +1,6 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { Link } from "react-router-dom"
-import { X, ArrowLeft, Trash2 } from "lucide-react"
+import { X, ArrowLeft, Trash2, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +15,7 @@ import { generateTmdl } from "@/lib/tmdl"
 
 export default function GeneratePage() {
   const { selectedMeasureIds, selectedUdfIds, selectedPackageIds, toggle, clear } = useSelectionStore()
+  const [instructionsOpen, setInstructionsOpen] = useState(false)
 
   const { data: allMeasures = [] } = useMeasures()
   const { data: allUdfs = [] } = useUdfs()
@@ -157,9 +158,45 @@ export default function GeneratePage() {
               <CopyButton text={tmdl} />
             </div>
             <TmdlBlock code={tmdl} />
-            <p className="text-xs text-muted-foreground">
-              Paste this into Power BI Desktop's TMDL view (Model &gt; Edit TMDL).
-            </p>
+
+            {/* Usage instructions (collapsible) */}
+            <div className="border rounded-md">
+              <button
+                type="button"
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors"
+                onClick={() => setInstructionsOpen((v) => !v)}
+              >
+                <span>How to apply this TMDL in Power BI Desktop</span>
+                {instructionsOpen
+                  ? <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  : <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                }
+              </button>
+              {instructionsOpen && (
+                <div className="px-4 pb-4 flex flex-col gap-2 text-sm text-muted-foreground border-t pt-3">
+                  <ol className="list-decimal list-inside space-y-2">
+                    <li>Click <strong>Copy to clipboard</strong> above.</li>
+                    <li>Open Power BI Desktop and switch to the <strong>Model view</strong>.</li>
+                    <li>
+                      Click <strong>Edit TMDL</strong> in the ribbon (or the TMDL icon in the left sidebar)
+                      to open the TMDL editor.
+                    </li>
+                    <li>
+                      Paste anywhere in the TMDL editor — the <code className="font-mono text-xs">createOrReplace</code> directive
+                      safely merges the new measures into your existing tables without overwriting other measures.
+                    </li>
+                    <li>Click <strong>Apply</strong>. Power BI will add or update only the declared measures.</li>
+                  </ol>
+                  {selectedUdfs.length > 0 || selectedPackages.some((p) => p.udfIds.length > 0) ? (
+                    <p className="mt-2 text-xs border-l-2 pl-3">
+                      <strong>Note for functions:</strong> Top-level TMDL <code className="font-mono">function</code> objects
+                      are model-level — they don't belong to any table and can be called from any measure.
+                      Power BI Desktop requires model version 1.7+ to support user-defined functions.
+                    </p>
+                  ) : null}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

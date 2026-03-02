@@ -10,35 +10,34 @@ function indent(text: string, spaces: number): string {
 
 function emitMeasure(m: DaxMeasure): string {
   const lines: string[] = []
-  // Indent DAX expression by 12 spaces (measure body standard)
-  const daxIndented = indent(m.daxExpression.trimEnd(), 12)
-  lines.push(`    measure '${m.displayName}' =`)
+  const daxIndented = indent(m.daxExpression.trimEnd(), 16)
+  lines.push(`        measure '${m.displayName}' =`)
   lines.push(daxIndented)
   lines.push("")
   if (m.formatString) {
-    lines.push(`        formatString: ${m.formatString}`)
+    lines.push(`            formatString: ${m.formatString}`)
   }
   if (m.description) {
-    lines.push(`        description: """${m.description}"""`)
+    lines.push(`            description: """${m.description}"""`)
   }
   if (m.displayFolder) {
-    lines.push(`        displayFolder: ${m.displayFolder}`)
+    lines.push(`            displayFolder: ${m.displayFolder}`)
   }
   if (m.isHidden) {
-    lines.push(`        isHidden`)
+    lines.push(`            isHidden`)
   }
   return lines.join("\n")
 }
 
 function emitUdf(u: DaxUdf): string {
   const lines: string[] = []
-  const daxIndented = indent(u.daxExpression.trimEnd(), 12)
-  lines.push(`    measure '${u.displayName}' =`)
-  lines.push(daxIndented)
-  lines.push("")
   if (u.description) {
-    lines.push(`        description: """${u.description}"""`)
+    lines.push(`/// ${u.description}`)
   }
+  const bodyIndented = indent(u.daxExpression.trimEnd(), 8)
+  lines.push(`function '${u.displayName}' =`)
+  lines.push(`    (${u.parameters}) =>`)
+  lines.push(bodyIndented)
   return lines.join("\n")
 }
 
@@ -79,31 +78,13 @@ export function generateTmdl(
   const allSelectedMeasures = Array.from(measureMap.values())
   const allSelectedUdfs = Array.from(udfMap.values())
 
-  // 4. Group by tableName
-  const tableGroups = new Map<string, { measures: DaxMeasure[]; udfs: DaxUdf[] }>()
-
-  for (const m of allSelectedMeasures) {
-    if (!tableGroups.has(m.tableName)) {
-      tableGroups.set(m.tableName, { measures: [], udfs: [] })
-    }
-    tableGroups.get(m.tableName)!.measures.push(m)
-  }
-
-  for (const u of allSelectedUdfs) {
-    if (!tableGroups.has(u.tableName)) {
-      tableGroups.set(u.tableName, { measures: [], udfs: [] })
-    }
-    tableGroups.get(u.tableName)!.udfs.push(u)
-  }
-
-  if (tableGroups.size === 0) {
+  if (allSelectedMeasures.length === 0 && allSelectedUdfs.length === 0) {
     return "// No items selected."
   }
 
   const totalCount = allSelectedMeasures.length + allSelectedUdfs.length
   const timestamp = new Date().toISOString()
 
-  // 5. Emit TMDL
   const blocks: string[] = []
 
   // Header comment
@@ -113,15 +94,35 @@ export function generateTmdl(
     ``
   )
 
-  for (const [tableName, group] of tableGroups) {
-    blocks.push(`table '${tableName}'`)
-    for (const m of group.measures) {
-      blocks.push(emitMeasure(m))
+  // 4. Emit measures inside a single createOrReplace block with ref table groups
+  if (allSelectedMeasures.length > 0) {
+    // Group by tableName
+    const tableGroups = new Map<string, DaxMeasure[]>()
+    for (const m of allSelectedMeasures) {
+      if (!tableGroups.has(m.tableName)) {
+        tableGroups.set(m.tableName, [])
+      }
+      tableGroups.get(m.tableName)!.push(m)
     }
-    for (const u of group.udfs) {
+
+    blocks.push(`createOrReplace`)
+    blocks.push(``)
+    for (const [tableName, measures] of tableGroups) {
+      blocks.push(`    ref table '${tableName}'`)
+      blocks.push(``)
+      for (const m of measures) {
+        blocks.push(emitMeasure(m))
+        blocks.push(``)
+      }
+    }
+  }
+
+  // 5. Emit UDFs as top-level function objects (model-level, not table-scoped)
+  if (allSelectedUdfs.length > 0) {
+    for (const u of allSelectedUdfs) {
       blocks.push(emitUdf(u))
+      blocks.push(``)
     }
-    blocks.push("")
   }
 
   return blocks.join("\n").trimEnd()

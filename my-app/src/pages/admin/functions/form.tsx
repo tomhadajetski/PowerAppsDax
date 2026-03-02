@@ -20,9 +20,8 @@ const DEFAULT_FORM: FormData = {
   name: "",
   displayName: "",
   description: "",
-  daxExpression: "",
-  tableName: "_Functions",
   parameters: "",
+  daxExpression: "",
   returnDescription: "",
   categoryId: "",
   tagIds: [],
@@ -47,9 +46,8 @@ export default function FunctionFormPage() {
         name: existing.name,
         displayName: existing.displayName,
         description: existing.description,
+        parameters: existing.parameters,
         daxExpression: existing.daxExpression,
-        tableName: existing.tableName,
-        parameters: existing.parameters ?? "",
         returnDescription: existing.returnDescription ?? "",
         categoryId: existing.categoryId,
         tagIds: existing.tagIds,
@@ -65,7 +63,6 @@ export default function FunctionFormPage() {
     e.preventDefault()
     const data: FormData = {
       ...form,
-      parameters: form.parameters || undefined,
       returnDescription: form.returnDescription || undefined,
     }
     try {
@@ -95,6 +92,11 @@ export default function FunctionFormPage() {
   }
 
   const isPending = createMutation.isPending || updateMutation.isPending
+
+  // Live preview of the generated TMDL function signature
+  const signaturePreview = form.displayName
+    ? `function '${form.displayName}' =\n    (${form.parameters || "…"}) =>\n        ${form.daxExpression ? form.daxExpression.split("\n")[0] + (form.daxExpression.includes("\n") ? " …" : "") : "…"}`
+    : ""
 
   return (
     <div className="p-6 flex flex-col gap-6 max-w-2xl">
@@ -146,21 +148,38 @@ export default function FunctionFormPage() {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="parameters">Parameters</Label>
-          <Textarea
+          <Label htmlFor="parameters">Parameters <span className="text-destructive">*</span></Label>
+          <Input
             id="parameters"
             value={form.parameters}
             onChange={(e) => set("parameters", e.target.value)}
-            rows={2}
-            placeholder="Describe expected VAR parameters…"
+            className="font-mono"
+            placeholder="e.g. Numerator : DOUBLE VAL, Denominator : DOUBLE VAL"
+            required
           />
+          <p className="text-xs text-muted-foreground">
+            Use TMDL type syntax: <code className="font-mono">Name : TYPE VAL</code> for scalars,{" "}
+            <code className="font-mono">Name : TABLE</code> for tables. Separate multiple params with commas.
+          </p>
         </div>
 
         <DaxExpressionField
           value={form.daxExpression}
           onChange={(v) => set("daxExpression", v)}
+          label="Lambda Body"
+          placeholder={"IF(\n    Denominator = 0,\n    BLANK(),\n    DIVIDE(Numerator, Denominator)\n)"}
           required
         />
+        <p className="text-xs text-muted-foreground -mt-3">
+          Enter just the expression after <code className="font-mono">=&gt;</code>. Parameters are available as plain names (no brackets).
+        </p>
+
+        {signaturePreview && (
+          <div className="rounded-md border bg-neutral-950 dark:bg-neutral-900 p-3">
+            <p className="text-xs text-muted-foreground mb-1.5">Generated TMDL preview:</p>
+            <pre className="text-xs font-mono text-green-400 whitespace-pre">{signaturePreview}</pre>
+          </div>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="returnDescription">Return Value</Label>
@@ -173,30 +192,18 @@ export default function FunctionFormPage() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="tableName">Table Name <span className="text-destructive">*</span></Label>
-            <Input
-              id="tableName"
-              value={form.tableName}
-              onChange={(e) => set("tableName", e.target.value)}
-              className="font-mono"
-              required
-            />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="category">Category</Label>
-            <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select category…" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="category">Category</Label>
+          <Select value={form.categoryId} onValueChange={(v) => set("categoryId", v)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select category…" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((c) => (
+                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <TagSelector

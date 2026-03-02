@@ -86,7 +86,6 @@ export function MeasureSelector({
                     className={cn("mr-2 h-4 w-4", selectedUdfIds.includes(u.id) ? "opacity-100" : "opacity-0")}
                   />
                   {u.displayName}
-                  <span className="ml-auto text-xs text-muted-foreground">{u.tableName}</span>
                 </CommandItem>
               ))}
             </CommandGroup>

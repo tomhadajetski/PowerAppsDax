@@ -31,9 +31,8 @@ export interface DaxUdf {
   name: string
   displayName: string
   description: string
-  daxExpression: string
-  tableName: string
-  parameters?: string
+  parameters: string           // TMDL signature: "Param1 : DOUBLE VAL, Param2 : TABLE"
+  daxExpression: string        // lambda body only (after =>)
   returnDescription?: string
   categoryId: string
   tagIds: string[]

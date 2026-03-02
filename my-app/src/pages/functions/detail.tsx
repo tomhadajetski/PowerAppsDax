@@ -42,6 +42,9 @@ export default function FunctionDetailPage() {
   const udfTags = tags.filter((t) => udf.tagIds.includes(t.id))
   const isSelected = selectedUdfIds.has(udf.id)
 
+  // Reconstruct the full TMDL function signature for display
+  const functionSignature = `function '${udf.displayName}' =\n    (${udf.parameters}) =>\n        ${udf.daxExpression.replace(/\n/g, "\n        ")}`
+
   return (
     <div className="p-6 flex flex-col gap-6 max-w-3xl">
       <div className="flex items-center gap-3">
@@ -94,16 +97,9 @@ export default function FunctionDetailPage() {
         <p className="text-sm leading-relaxed">{udf.description}</p>
       )}
 
-      {udf.parameters && (
-        <div>
-          <h2 className="text-sm font-semibold mb-1">Parameters</h2>
-          <p className="text-sm text-muted-foreground">{udf.parameters}</p>
-        </div>
-      )}
-
       <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold">DAX Expression</h2>
-        <TmdlBlock code={udf.daxExpression} />
+        <h2 className="text-sm font-semibold">TMDL Function</h2>
+        <TmdlBlock code={functionSignature} />
       </div>
 
       {udf.returnDescription && (
@@ -112,11 +108,6 @@ export default function FunctionDetailPage() {
           <p className="text-sm text-muted-foreground">{udf.returnDescription}</p>
         </div>
       )}
-
-      <div className="text-sm">
-        <p className="text-muted-foreground text-xs uppercase tracking-wide font-medium mb-1">Table</p>
-        <p className="font-mono">{udf.tableName}</p>
-      </div>
 
       {udfTags.length > 0 && (
         <div className="flex flex-wrap gap-1">
